@@ -1687,6 +1687,7 @@ window.KAISOU_DATA = [
   {
     "id": 145,
     "name": "すていじ あくと6",
+    "note": "出陣させる必要はありませんが、稲葉江と富田江の所持が必要です。",
     "swords": [
       "篭手切江",
       "豊前江",
@@ -2111,7 +2112,7 @@ window.KAISOU_DATA = [
     "id": 181,
     "name": "山と歌と温泉と",
     "swords": [
-      "袮々切丸",
+      "祢々切丸",
       "三郎国宗"
     ],
     "battlefield": "なし",
@@ -2206,7 +2207,7 @@ window.KAISOU_DATA = [
     "id": 189,
     "name": "日光の神刀",
     "swords": [
-      "袮々切丸",
+      "祢々切丸",
       "柏太刀"
     ],
     "battlefield": "なし",
