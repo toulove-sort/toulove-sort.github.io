@@ -2168,10 +2168,10 @@ window.KAISOU_DATA = [
   },
   {
     "id": 186,
-    "name": "英雄を追って」",
+    "name": "英雄を追って",
     "swords": [
       "大千鳥十文字槍",
-      "安宅切"
+      "二筋樋貞宗"
     ],
     "battlefield": "2-4",
     "prerequisiteIds": [
