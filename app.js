@@ -6,6 +6,17 @@
   const $ = (id) => document.getElementById(id);
   const state = { completed: new Set(), query: '', status: 'all', battle: 'all', sword: 'all', sort: 'id-asc', expanded: new Set() };
 
+  // 刀帳番号順。未登録の新刀剣男士は末尾で名前順に表示する。
+  const SWORD_CATALOG_ORDER = [
+    '童子切安綱 剥落','三日月宗近','小狐丸','石切丸','岩融','今剣','大典太光世','ソハヤノツルキ','数珠丸恒次','にっかり青江','鬼丸国綱','鳴狐','一期一振','鯰尾藤四郎','骨喰藤四郎','平野藤四郎','厚藤四郎','後藤藤四郎','信濃藤四郎','前田藤四郎','秋田藤四郎','博多藤四郎','乱藤四郎','五虎退','薬研藤四郎','包丁藤四郎','大包平','鶯丸','明石国行','蛍丸','愛染国俊','千子村正','蜻蛉切','物吉貞宗','太鼓鐘貞宗','亀甲貞宗','燭台切光忠','大般若長光','小竜景光','江雪左文字','宗三左文字','小夜左文字','加州清光','大和守安定','歌仙兼定','和泉守兼定','陸奥守吉行','山姥切国広','山伏国広','堀川国広','蜂須賀虎徹','浦島虎徹','長曽祢虎徹','髭切','膝丸','大倶利伽羅','へし切長谷部','不動行光','獅子王','小烏丸','抜丸','同田貫正国','鶴丸国永','太郎太刀','次郎太刀','日本号','御手杵','巴形薙刀','毛利藤四郎','篭手切江','謙信景光','小豆長光','日向正宗','静形薙刀','南泉一文字','千代金丸','山姥切長義','豊前江','祢々切丸','白山吉光','南海太郎朝尊','肥前忠広','北谷菜切','桑名江','水心子正秀','源清麿','松井江','山鳥毛','古今伝授の太刀','地蔵行平','治金丸','日光一文字','太閤左文字','五月雨江','大千鳥十文字槍','泛塵','一文字則宗','村雲江','姫鶴一文字','福島光忠','七星剣','丙子椒林剣','稲葉江','笹貫','人間無骨','八丁念仏','石田正宗','実休光忠','京極正宗','孫六兼元','後家兼光','火車切','富田江','大慶直胤','九鬼正宗','雲生','道誉一文字','雲次','面影','古備前信房','倶利伽羅江','三郎国宗','安宅切','二筋樋貞宗','雲重','柏太刀','波平行安','狐ヶ崎為次','桃太郎祐定','朝倉藤四郎'
+  ];
+  const swordOrderIndex = new Map(SWORD_CATALOG_ORDER.map((name, index) => [name, index]));
+  const compareSwordsByCatalog = (a, b) => {
+    const ai = swordOrderIndex.has(a) ? swordOrderIndex.get(a) : Number.MAX_SAFE_INTEGER;
+    const bi = swordOrderIndex.has(b) ? swordOrderIndex.get(b) : Number.MAX_SAFE_INTEGER;
+    return ai - bi || a.localeCompare(b, 'ja');
+  };
+
   // Storage adapter: keeping persistence behind this interface makes a future cloud adapter easier to add.
   const storage = {
     async load() {
@@ -32,7 +43,7 @@
 
   function populateFilters() {
     const battles = [...new Set(DATA.map(x => x.battlefield).filter(x => x && x !== 'なし' && x !== '未設定'))].sort((a,b) => a.localeCompare(b, 'ja', {numeric:true}));
-    const swords = [...new Set(DATA.flatMap(x => x.swords))].sort((a,b) => a.localeCompare(b, 'ja'));
+    const swords = [...new Set(DATA.flatMap(x => x.swords))].sort(compareSwordsByCatalog);
     for (const value of battles) $('battleFilter').add(new Option(value, value));
     for (const value of swords) $('swordFilter').add(new Option(value, value));
     $('totalCount').textContent = DATA.length;
@@ -105,7 +116,16 @@
     const tags = document.createElement('div'); tags.className = 'card-tags';
     if (item.battlefield && item.battlefield !== 'なし' && item.battlefield !== '未設定') tags.appendChild(makeTag(`合戦場 ${item.battlefield}`, 'battle'));
     else tags.appendChild(makeTag(item.battlefield === 'なし' ? '合戦場指定なし' : '合戦場未設定'));
-    item.swords.forEach(sword => tags.appendChild(makeTag(sword)));
+    item.swords.forEach(sword => {
+      const swordButton = document.createElement('button');
+      swordButton.type = 'button';
+      swordButton.className = 'tag sword-filter-button';
+      swordButton.textContent = sword;
+      swordButton.setAttribute('aria-label', `${sword}が必要な回想を表示`);
+      swordButton.title = `${sword}が必要な回想を表示`;
+      swordButton.addEventListener('click', () => filterBySword(sword));
+      tags.appendChild(swordButton);
+    });
     if (item.prerequisiteIds.length) tags.appendChild(makeTag(`前提回想 ${item.prerequisiteIds.length}件`, prerequisitesMet(item) ? 'ready' : 'prereq'));
     if (!prerequisitesMet(item)) tags.appendChild(makeTag('前提未回収', 'prereq'));
     content.appendChild(tags);
@@ -123,7 +143,16 @@
       const grid = document.createElement('div'); grid.className = 'detail-grid';
       const swordBlock = document.createElement('div'); swordBlock.className = 'detail-block';
       const swordHeading = document.createElement('h3'); swordHeading.textContent = '必要な刀剣男士'; swordBlock.appendChild(swordHeading);
-      const swordText = document.createElement('p'); swordText.textContent = item.swords.length ? item.swords.join('、') : 'CSVに記載なし'; swordBlock.appendChild(swordText);
+      const swordList = document.createElement('div'); swordList.className = 'sword-button-list';
+      if (item.swords.length) item.swords.forEach(sword => {
+        const swordButton = document.createElement('button'); swordButton.type = 'button';
+        swordButton.className = 'tag sword-filter-button'; swordButton.textContent = sword;
+        swordButton.setAttribute('aria-label', `${sword}が必要な回想を表示`);
+        swordButton.addEventListener('click', () => filterBySword(sword));
+        swordList.appendChild(swordButton);
+      });
+      else { const swordText = document.createElement('p'); swordText.textContent = 'CSVに記載なし'; swordList.appendChild(swordText); }
+      swordBlock.appendChild(swordList);
       const battleBlock = document.createElement('div'); battleBlock.className = 'detail-block';
       const battleHeading = document.createElement('h3'); battleHeading.textContent = '必要な合戦場'; battleBlock.appendChild(battleHeading);
       const battleText = document.createElement('p'); battleText.textContent = item.battlefield || '未設定'; battleBlock.appendChild(battleText);
@@ -140,6 +169,15 @@
       card.appendChild(detail);
     }
     return card;
+  }
+
+  function filterBySword(sword) {
+    state.sword = sword;
+    state.query = ''; state.status = 'all'; state.battle = 'all';
+    $('searchInput').value = ''; $('statusFilter').value = 'all'; $('battleFilter').value = 'all';
+    $('swordFilter').value = sword;
+    render();
+    document.querySelector('.list-section')?.scrollIntoView({behavior:'smooth', block:'start'});
   }
 
   function getFilteredData() {
