@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f7f5">
   <meta name="description" content="刀剣乱舞の回想回収状況を管理するチェックリスト。回想の条件・必要な刀剣男士・合戦場を確認できます。">
-  <title>回想回収ノート｜刀剣乱舞</title>
+  <title>回想管理ツール｜非公式ツール</title>
   <link rel="stylesheet" href="style.css">
   <script src="data.js" defer></script>
   <script src="app.js" defer></script>
@@ -14,7 +14,7 @@
   <header class="topbar">
     <a class="brand" href="#top" aria-label="回想回収ノート ホーム">
       <span class="brand-mark" aria-hidden="true">刀</span>
-      <span><strong>回想回収ノート</strong><small>TOUKEN RANBU · KAISOU TRACKER</small></span>
+      <span><strong>回想管理ツール</strong><small>TOUKEN RANBU · RECOLLECTIONS TRACKER</small></span>
     </a>
     <button class="button button-quiet" id="backupTop" type="button">バックアップ</button>
   </header>
@@ -44,7 +44,7 @@
     </section>
 
     <section class="list-section">
-      <div class="section-heading"><div><p class="eyebrow">KAISOU LIST</p><h2>回想一覧</h2></div><span class="hint">チェック状況はこのブラウザに自動保存されます</span></div>
+      <div class="section-heading"><div><p class="eyebrow">RECOLLECTION LIST</p><h2>回想一覧</h2></div><span class="hint">チェック状況はこのブラウザに自動保存されます</span></div>
       <div id="kaisouList" class="kaisou-list"></div>
       <div id="emptyState" class="empty-state" hidden><span aria-hidden="true">⌕</span><h3>回想が見つかりません</h3><p>検索語や絞り込み条件を変えてみてね。</p></div>
     </section>
@@ -54,7 +54,7 @@
       <div class="data-actions"><button id="exportButton" class="button button-primary" type="button">JSONを書き出す</button><button id="importButton" class="button button-secondary" type="button">バックアップを復元</button><input id="importFile" type="file" accept=".json,application/json" hidden></div>
       <p class="privacy-note"><span aria-hidden="true">🔒</span> 回収状況はこのブラウザ内に保存され、サーバーには送信されません。ブラウザのデータを消すと失われることがあるため、定期的なバックアップがおすすめです。</p>
     </section>
-    <footer class="footer"><span>回想回収ノート</span><span>非公式ファンメイドツール · 刀剣乱舞ONLINEとは無関係です</span></footer>
+    <footer class="footer"><span>回想管理ツール</span><span>非公式ファンメイドツール · 刀剣乱舞ONLINEとは無関係です</span></footer>
   </main>
 
   <dialog id="messageDialog" class="message-dialog"><div class="dialog-inner"><div id="dialogIcon" class="dialog-icon" aria-hidden="true">✓</div><h2 id="dialogTitle">お知らせ</h2><p id="dialogMessage"></p><div class="dialog-actions"><button id="dialogClose" class="button button-primary" type="button">閉じる</button></div></div></dialog>
