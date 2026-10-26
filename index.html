@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f5">
+  <meta name="description" content="刀剣乱舞の回想回収状況を管理するチェックリスト。回想の条件・必要な刀剣男士・合戦場を確認できます。">
+  <title>回想回収ノート｜刀剣乱舞</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="回想回収ノート ホーム">
+      <span class="brand-mark" aria-hidden="true">刀</span>
+      <span><strong>回想回収ノート</strong><small>TOUKEN RANBU · KAISOU TRACKER</small></span>
+    </a>
+    <button class="button button-quiet" id="backupTop" type="button">バックアップ</button>
+  </header>
+
+  <main id="top" class="page-shell">
+    <section class="intro">
+      <p class="eyebrow">YOUR COLLECTION, YOUR PACE</p>
+      <h1>回想の回収状況を、<br class="mobile-break">ひと目で管理。</h1>
+      <p class="intro-copy">必要な刀剣男士・合戦場・前提回想を確認して、回収した回想にチェックを付けよう。</p>
+    </section>
+
+    <section class="stats-grid" aria-label="回収状況">
+      <article class="stat-card stat-main"><span>回収済み</span><strong id="completedCount">0</strong><small id="completedPercent">0% 回収</small><div class="progress-track"><div id="progressBar" class="progress-fill"></div></div></article>
+      <article class="stat-card"><span>未回収</span><strong id="remainingCount">200</strong><small>これから回収</small></article>
+      <article class="stat-card"><span>登録回想</span><strong id="totalCount">200</strong><small>データベース収録数</small></article>
+    </section>
+
+    <section class="toolbar-panel" aria-label="回想の検索と絞り込み">
+      <div class="search-wrap"><span class="search-icon" aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="回想名・男士名・IDで検索" autocomplete="off" aria-label="回想を検索"></div>
+      <div class="filter-grid">
+        <label>回収状況<select id="statusFilter"><option value="all">すべて</option><option value="todo">未回収のみ</option><option value="done">回収済みのみ</option><option value="blocked">前提回想が未回収</option></select></label>
+        <label>合戦場<select id="battleFilter"><option value="all">すべての合戦場</option></select></label>
+        <label>必要な男士<select id="swordFilter"><option value="all">すべての刀剣男士</option></select></label>
+        <label>並べ替え<select id="sortSelect"><option value="id-asc">ID順（昇順）</option><option value="id-desc">ID順（降順）</option><option value="name-asc">回想名（五十音・文字順）</option><option value="battle-asc">合戦場順</option><option value="status-asc">未回収を先に表示</option></select></label>
+      </div>
+      <div class="toolbar-bottom"><span id="resultCount" aria-live="polite">200件を表示</span><button id="clearFilters" class="text-button" type="button">絞り込みをリセット</button></div>
+    </section>
+
+    <section class="list-section">
+      <div class="section-heading"><div><p class="eyebrow">KAISOU LIST</p><h2>回想一覧</h2></div><span class="hint">チェック状況はこのブラウザに自動保存されます</span></div>
+      <div id="kaisouList" class="kaisou-list"></div>
+      <div id="emptyState" class="empty-state" hidden><span aria-hidden="true">⌕</span><h3>回想が見つかりません</h3><p>検索語や絞り込み条件を変えてみてね。</p></div>
+    </section>
+
+    <section class="data-panel">
+      <div><p class="eyebrow">YOUR DATA</p><h2>データのバックアップ</h2><p>回収状況は端末ごとに保存されます。別の端末で使うときは、JSONファイルを書き出して復元してください。</p></div>
+      <div class="data-actions"><button id="exportButton" class="button button-primary" type="button">JSONを書き出す</button><button id="importButton" class="button button-secondary" type="button">バックアップを復元</button><input id="importFile" type="file" accept=".json,application/json" hidden></div>
+      <p class="privacy-note"><span aria-hidden="true">🔒</span> 回収状況はこのブラウザ内に保存され、サーバーには送信されません。ブラウザのデータを消すと失われることがあるため、定期的なバックアップがおすすめです。</p>
+    </section>
+    <footer class="footer"><span>回想回収ノート</span><span>非公式ファンメイドツール · 刀剣乱舞ONLINEとは無関係です</span></footer>
+  </main>
+
+  <dialog id="messageDialog" class="message-dialog"><div class="dialog-inner"><div id="dialogIcon" class="dialog-icon" aria-hidden="true">✓</div><h2 id="dialogTitle">お知らせ</h2><p id="dialogMessage"></p><div class="dialog-actions"><button id="dialogClose" class="button button-primary" type="button">閉じる</button></div></div></dialog>
+</body>
+</html>
