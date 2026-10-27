@@ -68,8 +68,8 @@
 
   function populateFilters() {
     const battles = [...new Set(DATA.map(x => x.battlefield).filter(Boolean))].sort((a,b) => {
-      if (a === 'なし') return 1;
-      if (b === 'なし') return -1;
+      if (a === 'なし') return -1;
+      if (b === 'なし') return 1;
       if (a === '未設定') return 1;
       if (b === '未設定') return -1;
       return a.localeCompare(b, 'ja', {numeric:true});
