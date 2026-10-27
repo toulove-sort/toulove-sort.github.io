@@ -5,3 +5,12 @@
 
 /* 刀剣男士タグはクリックして必要な回想を絞り込める */
 .sword-filter-button{border:0;display:inline-flex;align-items:center;line-height:1.5;cursor:pointer;transition:background .12s,color .12s,box-shadow .12s}.sword-filter-button:hover,.sword-filter-button:focus-visible{background:var(--accent-soft);color:var(--accent);box-shadow:0 0 0 1px #dce7df;outline:none}.sword-button-list{display:flex;flex-wrap:wrap;gap:6px}
+
+.battle-filter-button{border:0;display:inline-flex;align-items:center;line-height:1.5;cursor:pointer;transition:background .12s,color .12s,box-shadow .12s}.battle-filter-button:hover,.battle-filter-button:focus-visible{background:#efe2c9;color:#745323;box-shadow:0 0 0 1px #e5d1ad;outline:none}.battle-filter-button.battle-unspecified{background:#f2f2ee;color:#5d6058}.battle-filter-button.battle-unspecified:hover,.battle-filter-button.battle-unspecified:focus-visible{background:var(--accent-soft);color:var(--accent);box-shadow:0 0 0 1px #dce7df}
+
+/* 回想カード：展開操作をなくし、解放条件を常時表示 */
+.card-prerequisites{padding:0 16px 14px 50px;border-top:1px solid #f0f0ec}
+.prerequisite-heading{font-size:10px;letter-spacing:.04em;color:var(--muted);margin:12px 0 7px}
+.card-prerequisites .prereq-note{margin-top:7px!important}
+.card-prerequisites .no-prerequisites{margin:10px 0 0!important}
+@media(max-width:720px){.card-prerequisites{padding:0 12px 12px 42px}}

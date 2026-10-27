@@ -4,7 +4,7 @@
   const STORAGE_KEY = 'kaisou-tracker-state-v1';
   const BACKUP_SCHEMA_VERSION = 1;
   const $ = (id) => document.getElementById(id);
-  const state = { completed: new Set(), query: '', status: 'all', battle: 'all', sword: 'all', sort: 'id-asc', expanded: new Set() };
+  const state = { completed: new Set(), query: '', status: 'all', battle: 'all', sword: 'all', sort: 'id-asc' };
 
   // 刀帳番号順。未登録の新刀剣男士は末尾で名前順に表示する。
   const SWORD_CATALOG_ORDER = [
@@ -67,9 +67,15 @@
   const getName = (id) => byId.get(Number(id))?.name || `ID ${id}（データなし）`;
 
   function populateFilters() {
-    const battles = [...new Set(DATA.map(x => x.battlefield).filter(x => x && x !== 'なし' && x !== '未設定'))].sort((a,b) => a.localeCompare(b, 'ja', {numeric:true}));
+    const battles = [...new Set(DATA.map(x => x.battlefield).filter(Boolean))].sort((a,b) => {
+      if (a === 'なし') return 1;
+      if (b === 'なし') return -1;
+      if (a === '未設定') return 1;
+      if (b === '未設定') return -1;
+      return a.localeCompare(b, 'ja', {numeric:true});
+    });
     const swords = [...new Set(DATA.flatMap(x => x.swords))].sort(compareSwordsByCatalog);
-    for (const value of battles) $('battleFilter').add(new Option(value, value));
+    for (const value of battles) $('battleFilter').add(new Option(value === 'なし' ? '指定なし' : value === '未設定' ? '未設定' : value, value));
     for (const value of swords) $('swordFilter').add(new Option(value, value));
     $('totalCount').textContent = DATA.length;
   }
@@ -110,7 +116,6 @@
       state.battle = 'all'; $('battleFilter').value = 'all';
       state.sword = 'all'; $('swordFilter').value = 'all';
       state.sort = 'id-asc'; $('sortSelect').value = 'id-asc';
-      state.expanded.add(target.id);
       render();
       const card = document.querySelector(`[data-card-id="${target.id}"]`);
       if (card) { card.scrollIntoView({behavior:'smooth', block:'center'}); card.classList.add('focus-highlight'); setTimeout(() => card.classList.remove('focus-highlight'), 1300); }
@@ -139,8 +144,14 @@
     const title = document.createElement('span'); title.className = 'card-title'; title.textContent = item.name;
     titleRow.append(id, title); content.appendChild(titleRow);
     const tags = document.createElement('div'); tags.className = 'card-tags';
-    if (item.battlefield && item.battlefield !== 'なし' && item.battlefield !== '未設定') tags.appendChild(makeTag(`合戦場 ${item.battlefield}`, 'battle'));
-    else tags.appendChild(makeTag(item.battlefield === 'なし' ? '合戦場指定なし' : '合戦場未設定'));
+    const battleButton = document.createElement('button');
+    battleButton.type = 'button';
+    battleButton.className = `tag battle battle-filter-button${item.battlefield === 'なし' || item.battlefield === '未設定' ? ' battle-unspecified' : ''}`;
+    battleButton.textContent = item.battlefield && item.battlefield !== 'なし' && item.battlefield !== '未設定' ? `合戦場 ${item.battlefield}` : item.battlefield === 'なし' ? '合戦場指定なし' : '合戦場未設定';
+    battleButton.setAttribute('aria-label', `${battleButton.textContent}の回想を表示`);
+    battleButton.title = `${battleButton.textContent}の回想を表示`;
+    battleButton.addEventListener('click', () => filterByBattle(item.battlefield || '未設定'));
+    tags.appendChild(battleButton);
     item.swords.forEach(sword => {
       const swordButton = document.createElement('button');
       swordButton.type = 'button';
@@ -163,43 +174,43 @@
     if (item.prerequisiteIds.length && !prerequisitesMet(item)) {
       const blocked = document.createElement('p'); blocked.className = 'blocked-label'; blocked.textContent = `前提回想が未回収：${item.prerequisiteIds.filter(id => !isComplete(id)).map(id => `ID ${id}`).join('、')}`; content.appendChild(blocked);
     }
-    const expand = document.createElement('button'); expand.type = 'button'; expand.className = 'card-expand'; expand.textContent = state.expanded.has(item.id) ? '−' : '+';
-    expand.setAttribute('aria-label', state.expanded.has(item.id) ? '詳細を閉じる' : '詳細を開く');
-    expand.setAttribute('aria-expanded', String(state.expanded.has(item.id)));
-    expand.addEventListener('click', () => { state.expanded.has(item.id) ? state.expanded.delete(item.id) : state.expanded.add(item.id); render(); });
-    main.append(checkWrap, content, expand); card.appendChild(main);
+    main.append(checkWrap, content); card.appendChild(main);
 
-    if (state.expanded.has(item.id)) {
-      const detail = document.createElement('div'); detail.className = 'card-detail';
-      const grid = document.createElement('div'); grid.className = 'detail-grid';
-      const swordBlock = document.createElement('div'); swordBlock.className = 'detail-block';
-      const swordHeading = document.createElement('h3'); swordHeading.textContent = '必要な刀剣男士'; swordBlock.appendChild(swordHeading);
-      const swordList = document.createElement('div'); swordList.className = 'sword-button-list';
-      if (item.swords.length) item.swords.forEach(sword => {
-        const swordButton = document.createElement('button'); swordButton.type = 'button';
-        swordButton.className = 'tag sword-filter-button'; swordButton.textContent = sword;
-        swordButton.setAttribute('aria-label', `${sword}が必要な回想を表示`);
-        swordButton.addEventListener('click', () => filterBySword(sword));
-        swordList.appendChild(swordButton);
-      });
-      else { const swordText = document.createElement('p'); swordText.textContent = 'CSVに記載なし'; swordList.appendChild(swordText); }
-      swordBlock.appendChild(swordList);
-      const battleBlock = document.createElement('div'); battleBlock.className = 'detail-block';
-      const battleHeading = document.createElement('h3'); battleHeading.textContent = '必要な合戦場'; battleBlock.appendChild(battleHeading);
-      const battleText = document.createElement('p'); battleText.textContent = item.battlefield || '未設定'; battleBlock.appendChild(battleText);
-      grid.append(swordBlock, battleBlock); detail.appendChild(grid);
-      if (item.prerequisiteIds.length) {
-        const preBlock = document.createElement('div'); preBlock.className = 'detail-block'; preBlock.style.marginTop = '15px';
-        const preHeading = document.createElement('h3'); preHeading.textContent = `事前に回収する回想（${item.prerequisiteIds.length}件・すべて必要）`; preBlock.appendChild(preHeading);
-        const links = document.createElement('div'); links.className = 'prereq-list'; item.prerequisiteIds.forEach(id => links.appendChild(makePrerequisiteLink(id))); preBlock.appendChild(links);
-        const note = document.createElement('p'); note.className = 'prereq-note'; note.textContent = prerequisitesMet(item) ? '前提条件を満たしています。' : '前提条件が未回収でも、この回想自体を回収済みにチェックできます。'; preBlock.appendChild(note);
-        detail.appendChild(preBlock);
-      } else {
-        const noPre = document.createElement('p'); noPre.className = 'prereq-note'; noPre.style.marginTop = '12px'; noPre.textContent = '前提回想の指定はありません。'; detail.appendChild(noPre);
-      }
-      card.appendChild(detail);
+    // 前提回想はカードを展開しなくても常に確認できるように表示する。
+    const prerequisiteBlock = document.createElement('div');
+    prerequisiteBlock.className = 'card-prerequisites';
+    if (item.prerequisiteIds.length) {
+      const heading = document.createElement('h3');
+      heading.className = 'prerequisite-heading';
+      heading.textContent = `解放条件：前提回想（${item.prerequisiteIds.length}件・すべて必要）`;
+      prerequisiteBlock.appendChild(heading);
+      const links = document.createElement('div');
+      links.className = 'prereq-list';
+      item.prerequisiteIds.forEach(id => links.appendChild(makePrerequisiteLink(id)));
+      prerequisiteBlock.appendChild(links);
+      const note = document.createElement('p');
+      note.className = 'prereq-note';
+      note.textContent = prerequisitesMet(item)
+        ? '前提条件を満たしています。'
+        : '前提条件が未回収でも、この回想自体を回収済みにチェックできます。';
+      prerequisiteBlock.appendChild(note);
+    } else {
+      const noPre = document.createElement('p');
+      noPre.className = 'prereq-note no-prerequisites';
+      noPre.textContent = '解放条件：前提回想なし';
+      prerequisiteBlock.appendChild(noPre);
     }
+    card.appendChild(prerequisiteBlock);
     return card;
+  }
+
+  function filterByBattle(battle) {
+    state.battle = battle;
+    state.query = ''; state.status = 'all'; state.sword = 'all';
+    $('searchInput').value = ''; $('statusFilter').value = 'all'; $('swordFilter').value = 'all';
+    $('battleFilter').value = battle;
+    render();
+    document.querySelector('.list-section')?.scrollIntoView({behavior:'smooth', block:'start'});
   }
 
   function filterBySword(sword) {
