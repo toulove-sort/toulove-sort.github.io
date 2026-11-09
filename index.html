@@ -43,6 +43,19 @@
       <div class="toolbar-bottom"><span id="resultCount" aria-live="polite">200件を表示</span><button id="clearFilters" class="text-button" type="button">絞り込みをリセット</button></div>
     </section>
 
+    <section class="planner-panel" id="teamPlanner">
+      <div class="section-heading"><div><p class="eyebrow">TEAM PLANNER</p><h2>回想回収の編成作成</h2></div><span class="hint">所持刀剣男士から回収編成を自動提案</span></div>
+      <p class="planner-intro">所持している刀剣男士を登録して、回収したい合戦場を選ぶと、未回収回想と前提回想をまとめた部隊案を作成します。合戦場指定なしの回想は、ほかの合戦場の編成にも組み合わせます。</p>
+      <div class="planner-controls">
+        <label class="planner-field">対象の合戦場<select id="plannerBattle"><option value="all">すべての合戦場</option></select></label>
+        <label class="planner-field">刀剣男士を検索<input id="ownedSearch" type="search" placeholder="刀剣男士名で検索"></label>
+      </div>
+      <div class="owned-toolbar"><strong>所持刀剣男士 <span id="ownedCount">0</span>振り</strong><div><button type="button" class="text-button" id="selectVisibleOwned">表示中をすべて所持</button><button type="button" class="text-button" id="clearOwned">すべて解除</button></div></div>
+      <div id="ownedSwordList" class="owned-sword-list"></div>
+      <div class="planner-actions"><button type="button" class="button button-primary" id="generatePlan">回収編成を作成</button><span class="hint">1部隊最大6振り・所持刀剣男士のみで編成</span></div>
+      <div id="planResults" class="plan-results" aria-live="polite"></div>
+    </section>
+
     <section class="list-section">
       <div class="section-heading"><div><p class="eyebrow">RECOLLECTION LIST</p><h2>回想一覧</h2></div><span class="hint">チェック状況はこのブラウザに自動保存されます</span></div>
       <div id="kaisouList" class="kaisou-list"></div>

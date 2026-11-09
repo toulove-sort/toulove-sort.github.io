@@ -3,6 +3,10 @@
   const DATA = Array.isArray(window.KAISOU_DATA) ? window.KAISOU_DATA : [];
   const STORAGE_KEY = 'kaisou-tracker-state-v1';
   const BACKUP_SCHEMA_VERSION = 1;
+  const OWNED_STORAGE_KEY = 'kaisou-tracker-owned-swords-v1';
+  const ownedSwords = new Set();
+  let ownedSearch = '';
+  let lastPlan = null;
   const $ = (id) => document.getElementById(id);
   const state = { completed: new Set(), query: '', status: 'all', battle: 'all', sword: 'all', sort: 'id-asc' };
 
@@ -65,6 +69,188 @@
   const isComplete = (id) => state.completed.has(Number(id));
   const prerequisitesMet = (item) => item.prerequisiteIds.length === 0 || item.prerequisiteIds.every(isComplete);
   const getName = (id) => byId.get(Number(id))?.name || `ID ${id}（データなし）`;
+
+  function allSwordNames() {
+    return [...new Set(DATA.flatMap(item => item.swords))].sort(compareSwordsByCatalog);
+  }
+
+  function isOwnedForRequirement(required, item) {
+    if (ownedSwords.has(required)) return required;
+    // 山姥切国広はID56/57以外なら通常・極のどちらでも代替可能。
+    if (required === '山姥切国広' && item.id !== 56 && ownedSwords.has('山姥切国広 極')) return '山姥切国広 極';
+    if (required === '山姥切国広 極' && item.id !== 57 && ownedSwords.has('山姥切国広')) return '山姥切国広';
+    return null;
+  }
+
+  function renderOwnedSwordList() {
+    const list = $('ownedSwordList');
+    if (!list) return;
+    list.replaceChildren();
+    const names = allSwordNames().filter(name => normalize(name).includes(normalize(ownedSearch)));
+    $('ownedCount').textContent = ownedSwords.size;
+    for (const name of names) {
+      const label = document.createElement('label');
+      label.className = 'owned-sword-option';
+      const input = document.createElement('input');
+      input.type = 'checkbox'; input.checked = ownedSwords.has(name);
+      input.addEventListener('change', () => {
+        if (input.checked) ownedSwords.add(name); else ownedSwords.delete(name);
+        saveOwnedSwords(); $('ownedCount').textContent = ownedSwords.size;
+      });
+      const span = document.createElement('span'); span.textContent = name;
+      label.append(input, span); list.appendChild(label);
+    }
+    if (!names.length) {
+      const empty = document.createElement('p'); empty.className = 'planner-empty'; empty.textContent = '該当する刀剣男士がいません。'; list.appendChild(empty);
+    }
+  }
+
+  function saveOwnedSwords() {
+    try { localStorage.setItem(OWNED_STORAGE_KEY, JSON.stringify([...ownedSwords])); }
+    catch (error) { showMessage('所持状況を保存できませんでした', 'ブラウザの保存領域を確認してください。', true); }
+  }
+
+  function dependencyDepth(item, memo = new Map(), visiting = new Set()) {
+    if (memo.has(item.id)) return memo.get(item.id);
+    if (visiting.has(item.id)) return 0;
+    visiting.add(item.id);
+    const parents = item.prerequisiteIds.map(id => byId.get(Number(id))).filter(Boolean);
+    const depth = parents.length ? 1 + Math.max(...parents.map(parent => dependencyDepth(parent, memo, visiting))) : 0;
+    visiting.delete(item.id); memo.set(item.id, depth); return depth;
+  }
+
+  function expandPrerequisites(item, result = new Map()) {
+    if (result.has(item.id) || isComplete(item.id)) return result;
+    result.set(item.id, item);
+    item.prerequisiteIds.forEach(id => {
+      const parent = byId.get(Number(id));
+      if (parent) expandPrerequisites(parent, result);
+    });
+    return result;
+  }
+
+  function getOwnedRequirements(item) {
+    const selected = [];
+    const missing = [];
+    for (const required of item.swords) {
+      const actual = isOwnedForRequirement(required, item);
+      if (actual) selected.push(actual); else missing.push(required);
+    }
+    return { selected: [...new Set(selected)], missing };
+  }
+
+  function packRecallItems(items) {
+    const teams = [];
+    for (const item of items.sort((a,b) => a.id-b.id)) {
+      const requirements = getOwnedRequirements(item);
+      if (requirements.missing.length) continue;
+      let best = null, bestOverlap = -1;
+      for (const team of teams) {
+        const union = new Set([...team.swords, ...requirements.selected]);
+        if (union.size > 6) continue;
+        const overlap = requirements.selected.filter(name => team.swords.has(name)).length;
+        if (overlap > bestOverlap) { best = team; bestOverlap = overlap; }
+      }
+      if (!best) { best = { swords: new Set(), items: [] }; teams.push(best); }
+      requirements.selected.forEach(name => best.swords.add(name)); best.items.push(item);
+    }
+    return teams;
+  }
+
+  function generateRecallPlan() {
+    const selectedBattle = $('plannerBattle').value;
+    const targets = DATA.filter(item => !isComplete(item.id) && (selectedBattle === 'all' || item.battlefield === selectedBattle || item.battlefield === 'なし'));
+    const required = new Map();
+    targets.forEach(item => expandPrerequisites(item, required));
+    const depthMemo = new Map();
+    const allItems = [...required.values()];
+    const impossible = allItems.map(item => ({ item, ...getOwnedRequirements(item) })).filter(x => x.missing.length);
+    const possible = allItems.filter(item => !impossible.some(x => x.item.id === item.id));
+    const depths = [...new Set(possible.map(item => dependencyDepth(item, depthMemo)))].sort((a,b)=>a-b);
+    const stages = [];
+    for (const depth of depths) {
+      const atDepth = possible.filter(item => dependencyDepth(item, depthMemo) === depth);
+      const byBattle = new Map();
+      const flexible = [];
+      atDepth.forEach(item => {
+        if (item.battlefield === 'なし' || !item.battlefield) flexible.push(item);
+        else {
+          if (!byBattle.has(item.battlefield)) byBattle.set(item.battlefield, []);
+          byBattle.get(item.battlefield).push(item);
+        }
+      });
+      // 合戦場指定なしは、同じ段階の具体的な合戦場チームに入れられるだけ入れる。
+      const battleTeams = [...byBattle.entries()].sort((a,b)=>a[0].localeCompare(b[0], 'ja', {numeric:true})).map(([battle, list]) => ({ battle, teams: packRecallItems(list) }));
+      for (const item of flexible.sort((a,b)=>a.id-b.id)) {
+        const req = getOwnedRequirements(item);
+        let best = null, overlapBest = -1;
+        for (const group of battleTeams) for (const team of group.teams) {
+          const union = new Set([...team.swords, ...req.selected]);
+          if (union.size > 6) continue;
+          const overlap = req.selected.filter(name => team.swords.has(name)).length;
+          if (overlap > overlapBest) { best = team; overlapBest = overlap; }
+        }
+        if (best) { req.selected.forEach(name => best.swords.add(name)); best.items.push(item); }
+        else {
+          const standalone = packRecallItems([item]);
+          battleTeams.push({ battle: '合戦場指定なし', teams: standalone });
+        }
+      }
+      battleTeams.forEach(group => group.teams.forEach(team => { if (team.items.length) stages.push({ depth, battle: group.battle, team }); }));
+    }
+    lastPlan = { stages, impossible, targetCount: targets.length, plannedCount: possible.length };
+    renderPlanResults(lastPlan);
+  }
+
+  function renderPlanResults(plan) {
+    const root = $('planResults'); root.replaceChildren();
+    const heading = document.createElement('h3'); heading.className = 'plan-heading'; heading.textContent = '編成案'; root.appendChild(heading);
+    if (!plan.targetCount) {
+      const p = document.createElement('p'); p.className = 'planner-empty'; p.textContent = '選択した条件に該当する未回収回想はありません。'; root.appendChild(p); return;
+    }
+    const summary = document.createElement('p'); summary.className = 'plan-summary';
+    summary.textContent = `対象の未回収回想：${plan.targetCount}件（前提回想を含む）／編成可能：${plan.plannedCount}件／所持不足：${plan.impossible.length}件`;
+    root.appendChild(summary);
+    if (plan.stages.length) {
+      const grouped = new Map();
+      plan.stages.forEach(entry => { if (!grouped.has(entry.depth)) grouped.set(entry.depth, []); grouped.get(entry.depth).push(entry); });
+      for (const [depth, entries] of grouped) {
+        const stageTitle = document.createElement('h4'); stageTitle.className = 'plan-stage-title'; stageTitle.textContent = depth === 0 ? '第1段階：前提条件なし' : `第${depth + 1}段階：前提回想の回収後`; root.appendChild(stageTitle);
+        for (const entry of entries) {
+          const card = document.createElement('article'); card.className = 'plan-card';
+          const title = document.createElement('h4'); title.textContent = `${entry.battle} ／ ${entry.team.swords.size}振り編成`;
+          const swords = document.createElement('p'); swords.className = 'plan-swords'; swords.textContent = [...entry.team.swords].sort(compareSwordsByCatalog).join(' ・ ');
+          const recalls = document.createElement('ul'); recalls.className = 'plan-recalls';
+          entry.team.items.forEach(item => { const li = document.createElement('li'); li.textContent = `ID ${item.id}「${item.name}」`; recalls.appendChild(li); });
+          card.append(title, swords, recalls); root.appendChild(card);
+        }
+      }
+    }
+    if (plan.impossible.length) {
+      const h = document.createElement('h4'); h.className = 'plan-stage-title'; h.textContent = '所持刀剣男士が不足している回想'; root.appendChild(h);
+      const ul = document.createElement('ul'); ul.className = 'missing-recalls';
+      plan.impossible.forEach(({item, missing}) => { const li = document.createElement('li'); li.textContent = `ID ${item.id}「${item.name}」：${missing.join('、')} が未所持`; ul.appendChild(li); }); root.appendChild(ul);
+    }
+    const note = document.createElement('p'); note.className = 'planner-note'; note.textContent = '※前提回想が必要な回想は段階を分けています。実際の回想発生条件・部隊編成条件により、出陣前にゲーム内でも確認してください。'; root.appendChild(note);
+  }
+
+  function populatePlanner() {
+    const battleSelect = $('plannerBattle');
+    const battles = [...new Set(DATA.map(item => item.battlefield).filter(value => value && value !== 'なし' && value !== '未設定'))].sort((a,b)=>a.localeCompare(b, 'ja', {numeric:true}));
+    battles.forEach(battle => battleSelect.add(new Option(battle, battle)));
+    try {
+      const saved = JSON.parse(localStorage.getItem(OWNED_STORAGE_KEY) || '[]');
+      if (Array.isArray(saved)) saved.forEach(name => { if (allSwordNames().includes(name)) ownedSwords.add(name); });
+    } catch (error) { console.warn('所持刀剣男士を読み込めませんでした', error); }
+    renderOwnedSwordList();
+    $('ownedSearch').addEventListener('input', event => { ownedSearch = event.target.value; renderOwnedSwordList(); });
+    $('selectVisibleOwned').addEventListener('click', () => {
+      allSwordNames().filter(name => normalize(name).includes(normalize(ownedSearch))).forEach(name => ownedSwords.add(name));
+      saveOwnedSwords(); renderOwnedSwordList();
+    });
+    $('clearOwned').addEventListener('click', () => { ownedSwords.clear(); saveOwnedSwords(); renderOwnedSwordList(); });
+    $('generatePlan').addEventListener('click', generateRecallPlan);
+  }
 
   function populateFilters() {
     const battles = [...new Set(DATA.map(x => x.battlefield).filter(Boolean))].sort((a,b) => {
@@ -310,6 +496,7 @@
   async function init() {
     state.completed = new Set((await storage.load()).map(Number).filter(id => byId.has(id)));
     populateFilters();
+    populatePlanner();
     $('searchInput').addEventListener('input', e => { state.query = e.target.value; render(); });
     $('statusFilter').addEventListener('change', e => { state.status = e.target.value; render(); });
     $('battleFilter').addEventListener('change', e => { state.battle = e.target.value; render(); });

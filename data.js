@@ -1780,7 +1780,9 @@ window.KAISOU_DATA = [
       "大慶直胤"
     ],
     "battlefield": "5-1",
-    "prerequisiteIds": [],
+    "prerequisiteIds": [
+      74
+    ],
     "prerequisiteMode": "AND"
   },
   {

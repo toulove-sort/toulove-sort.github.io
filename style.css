@@ -14,3 +14,30 @@
 .card-prerequisites .prereq-note{margin-top:7px!important}
 .card-prerequisites .no-prerequisites{margin:10px 0 0!important}
 @media(max-width:720px){.card-prerequisites{padding:0 12px 12px 42px}}
+
+
+/* 回想回収編成プランナー */
+.planner-panel{margin-top:30px;padding:22px;background:var(--paper);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow)}
+.planner-intro{font-size:12px;color:var(--muted);margin:0 0 16px;max-width:760px}
+.planner-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.planner-field{display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--muted)}
+.planner-field select,.planner-field input{height:39px;border:1px solid var(--line);border-radius:9px;padding:0 10px;background:#fff;color:var(--ink);min-width:0;font-size:12px}
+.owned-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;margin:12px 0 9px}
+.owned-toolbar strong span{color:var(--accent);font-variant-numeric:tabular-nums}
+.owned-sword-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-height:260px;overflow:auto;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fbfbfa}
+.owned-sword-option{display:flex;align-items:center;gap:7px;min-width:0;font-size:11px;padding:4px 2px;cursor:pointer}
+.owned-sword-option span{overflow-wrap:anywhere}
+.owned-sword-option input{accent-color:var(--accent);flex-shrink:0}
+.planner-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+.planner-actions .hint{font-size:10px}
+.plan-results{margin-top:18px}
+.plan-heading{font-size:16px;margin:0 0 8px}
+.plan-summary,.planner-note{font-size:11px;color:var(--muted)}
+.plan-stage-title{font-size:13px;margin:18px 0 8px}
+.plan-card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:8px 0;background:#fcfcfa}
+.plan-card h4{font-size:12px;margin:0 0 6px}
+.plan-swords{font-size:11px;color:var(--accent);font-weight:650;margin:0 0 8px}
+.plan-recalls,.missing-recalls{font-size:11px;margin:0;padding-left:20px}
+.plan-recalls li,.missing-recalls li{margin:3px 0}
+.planner-empty{font-size:12px;color:var(--muted)}
+@media(max-width:720px){.planner-panel{padding:15px}.planner-controls{grid-template-columns:1fr}.owned-sword-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:300px}.owned-toolbar{align-items:flex-start}.owned-toolbar>div{display:flex;flex-wrap:wrap}.planner-actions{align-items:flex-start;flex-direction:column}}
