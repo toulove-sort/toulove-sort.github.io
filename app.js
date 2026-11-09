@@ -202,6 +202,18 @@
     renderPlanResults(lastPlan);
   }
 
+  async function markRecallsCompleted(ids, completed) {
+    const validIds = [...new Set(ids.map(Number).filter(id => byId.has(id)))];
+    validIds.forEach(id => completed ? state.completed.add(id) : state.completed.delete(id));
+    try {
+      await storage.save([...state.completed].sort((a,b)=>a-b));
+      render();
+      if (lastPlan) renderPlanResults(lastPlan);
+    } catch (error) {
+      showMessage('保存できませんでした', 'ブラウザの保存領域に書き込めませんでした。設定をご確認ください。', true);
+    }
+  }
+
   function renderPlanResults(plan) {
     const root = $('planResults'); root.replaceChildren();
     const heading = document.createElement('h3'); heading.className = 'plan-heading'; heading.textContent = '編成案'; root.appendChild(heading);
@@ -220,9 +232,26 @@
           const card = document.createElement('article'); card.className = 'plan-card';
           const title = document.createElement('h4'); title.textContent = `${entry.battle} ／ ${entry.team.swords.size}振り編成`;
           const swords = document.createElement('p'); swords.className = 'plan-swords'; swords.textContent = [...entry.team.swords].sort(compareSwordsByCatalog).join(' ・ ');
+          const teamIds = entry.team.items.map(item => item.id);
+          const bulkLabel = document.createElement('label'); bulkLabel.className = 'plan-bulk-check';
+          const bulkCheck = document.createElement('input'); bulkCheck.type = 'checkbox';
+          bulkCheck.checked = teamIds.every(isComplete);
+          bulkCheck.indeterminate = teamIds.some(isComplete) && !bulkCheck.checked;
+          bulkCheck.setAttribute('aria-label', `${entry.battle}のこの編成に含まれる回想をすべて回収済みにする`);
+          bulkCheck.addEventListener('change', () => markRecallsCompleted(teamIds, bulkCheck.checked));
+          const bulkText = document.createElement('span'); bulkText.textContent = 'この編成の回想をまとめて回収済みにする';
+          bulkLabel.append(bulkCheck, bulkText);
           const recalls = document.createElement('ul'); recalls.className = 'plan-recalls';
-          entry.team.items.forEach(item => { const li = document.createElement('li'); li.textContent = `ID ${item.id}「${item.name}」`; recalls.appendChild(li); });
-          card.append(title, swords, recalls); root.appendChild(card);
+          entry.team.items.forEach(item => {
+            const li = document.createElement('li'); li.className = isComplete(item.id) ? 'is-done' : '';
+            const checkLabel = document.createElement('label'); checkLabel.className = 'plan-recall-check';
+            const check = document.createElement('input'); check.type = 'checkbox'; check.checked = isComplete(item.id);
+            check.setAttribute('aria-label', `ID ${item.id}「${item.name}」を回収済みにする`);
+            check.addEventListener('change', () => markRecallsCompleted([item.id], check.checked));
+            const text = document.createElement('span'); text.textContent = `ID ${item.id}「${item.name}」`;
+            checkLabel.append(check, text); li.appendChild(checkLabel); recalls.appendChild(li);
+          });
+          card.append(title, swords, bulkLabel, recalls); root.appendChild(card);
         }
       }
     }
