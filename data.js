@@ -2338,5 +2338,27 @@ window.KAISOU_DATA = [
     "battlefield": "3-4",
     "prerequisiteIds": [],
     "prerequisiteMode": "AND"
+  },
+  {
+    "id": 201,
+    "name": "躍動する蹴道を行け",
+    "swords": [
+      "朝倉藤四郎",
+      "八八王国吉"
+    ],
+    "battlefield": "なし",
+    "prerequisiteIds": [],
+    "prerequisiteMode": "AND"
+  },
+  {
+    "id": 202,
+    "name": "海道一の弓取り",
+    "swords": [
+      "江雪左文字",
+      "八八王国吉"
+    ],
+    "battlefield": "3-2",
+    "prerequisiteIds": [],
+    "prerequisiteMode": "AND"
   }
 ];
